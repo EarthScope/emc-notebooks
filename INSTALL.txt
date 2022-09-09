@@ -21,13 +21,15 @@ Incorporated Research Institutions for Seismology (IRIS)\
     - Outputs the entire netCDF file or a selected portion of it in GeoCSV format (will be created during the initial run)
 
 REQUIREMENTS:
-    - JupyterLabor Jupyter Notebook (https://jupyter.org/)
+    - JupyterLab or Jupyter Notebook (https://jupyter.org/)
     - Python 3
     - Python module(s) with the tested version:
              . numpy
              . xarray
+             . netCDF4
              . scipy
              . cartopy
+             . matplotlib
              . request
 
        - this package has been tested under Python 3.10.06 on macOS 12.5.1 (may work with older Python 3 versions)
