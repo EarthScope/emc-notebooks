@@ -1,6 +1,5 @@
 import os
 import math
-import validators
 import requests
 from requests.exceptions import HTTPError
 from datetime import datetime, timezone
@@ -612,3 +611,4 @@ def make_model_geocsv(run_args, output_mode):
         fp.write(f'{"".join(data_header)}\n')
         fp.write(''.join(output_data))
         fp.close()
+
