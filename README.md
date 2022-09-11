@@ -1,6 +1,6 @@
  Incorporated Research Institutions for Seismology (IRIS)\
  Data Management Center (DMC)\
- Data Products Team\
+ Data Products Team
  
  Earth Model Collaboration (EMC)\
  EMC Model Explorer - an  EMC Notebook
@@ -32,13 +32,16 @@ This package contains the following files:
            An asset directory for the notebook to hold images and files used by the notebook.
 
      data/
-       Directory where the model netCDF files are read from.
+       The directory where the model netCDF files are read from.
 
      output/
-       Directory where the notebook stores its output files under.
+       The directory where the notebook stores its output files under.
+
+     samples/
+       A directory of sample EMC model netCDF files.
 
     CHANGES.txt
-       A text file containing history of changes to this package.
+      History of changes to this package.
 
     INSTALL.txt
        The installation notes
