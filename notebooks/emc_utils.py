@@ -168,14 +168,14 @@ def message(body, color='blue', weight='bold'):
     display(Markdown(f"\n\n<span style='color:{color}; font-weight:{weight}'>{body}</span>\n\n"))
 
         
-def ds_2_csv(ds, file_name, delimiter):
+def ds_2_csv(ds, filename, delimiter):
     """Save a dataset to a CSV file"""
     _df = ds.to_dataframe()
-    _df.to_csv(file_name, sep=delimiter)
+    _df.to_csv(filename, sep=delimiter)
         
 
-def save_files(save_data, save_plot, ds, plt, var_tag, save_tag, variable, delimiter, base_file_name, extensions, out_dir):
-    save_file = os.path.join(out_dir, '_'.join([base_file_name, variable, var_tag, save_tag]))
+def save_files(save_data, save_plot, ds, plt, var_tag, variable, delimiter, base_filename, extensions, out_dir):
+    save_file = os.path.join(out_dir, '_'.join([base_filename, variable, var_tag,]))
     if save_data:
         ds_2_csv(ds, f"{save_file}{extensions['csv']}", delimiter)
 
@@ -319,11 +319,11 @@ def get_model_header(model_file, model_data, run_args, var_list=list(), spacer='
     # variables
 
     header.append(f"{spacer}#\n")
-    if mode == 'single':
-        for var_index, var_value in enumerate(list(model_data.variables)):
-            if not var_list or var_value in var_list:
-                head = get_var_header(model_data, var_value)
-                header.append(f"{head}\n")
+    #if mode == 'single':
+    #    for var_index, var_value in enumerate(list(model_data.variables)):
+    #        if not var_list or var_value in var_list:
+    #            head = get_var_header(model_data, var_value)
+    #            header.append(f"->{head}\n")
             
     return ''.join(header)
 
@@ -414,10 +414,10 @@ def make_model_geocsv(run_args, output_mode):
     out_dir = run_args['output_path']
     delimiter = run_args['delimiter']
     model_data = run_args['model_data']
-    model_file = run_args['model_file_name']
+    model_file = run_args['model_filename']
     data_dir = run_args['data_path']
     model_file = os.path.join(data_dir, model_file)
-    base_file_name = run_args['base_file_name']
+    base_filename = run_args['base_filename']
     default_extensions = run_args['default_extensions']
     data_variables = run_args['data_variables']
     valid_modes = run_args['valid_modes']
@@ -479,7 +479,7 @@ def make_model_geocsv(run_args, output_mode):
         # For the single output file option, if requested or if the model is 2D.
         if (output_mode == 'single' and do_init) or ndim['model'] == 2:
             data_header = list()
-            output_file = os.path.join(out_dir, f"{base_file_name}{default_extensions['csv']}")
+            output_file = os.path.join(out_dir, f"{base_filename}{default_extensions['csv']}")
             fp = open(os.path.join(out_dir, output_file), 'w')
             print(f'[INFO] Output file: {output_file}', flush=True)
             fp.write(get_model_header(model_file, model_data, run_args, var_list=variable_list, spacer=''))
@@ -495,7 +495,7 @@ def make_model_geocsv(run_args, output_mode):
             output_data = list()
             data_header = list()
             output_file = os.path.join(
-                f"{base_file_name}_{this_z}_{valid_modes[output_mode]}{default_extensions['csv']}")
+                f"{base_filename}_{this_z}_{valid_modes[output_mode]}{default_extensions['csv']}")
             fp = open(os.path.join(out_dir, output_file), 'w')
             print(f'[INFO] Output file: {output_file}', flush=True)
             fp.write(get_model_header(model_file, model_data, run_args, var_list=variable_list, spacer='', mode=output_mode))
