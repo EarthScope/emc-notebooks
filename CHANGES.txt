@@ -1,6 +1,6 @@
 
-2022-09-09
-r0.0 initial beta release
+2022-09-22
+r0.5 initial beta release
 ----------------------------------
 notebooks/emc_model_explorer.ipynb
 notebooks/emc_utils.py
