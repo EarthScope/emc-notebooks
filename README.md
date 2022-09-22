@@ -4,8 +4,8 @@
  
  Earth Model Collaboration (EMC)\
  EMC Model Explorer - an  EMC Notebook
-
- 2022-09-09
+ Release: r0.5
+ 2022-09-22
 
 ------------------------------------------------------------------------------------------------------------------------
 
@@ -14,7 +14,7 @@
 This Jupyter Notebook reads an [EMC-compatible Earth model file](http://ds.iris.edu/ds/products/emc-earthmodels/) in the geographic coordinate system, and allows the user to explore its contents by: 
 
 * Displaying the model metadata in either [netCDF](https://www.unidata.ucar.edu/software/netcdf/) or [GeoCSV](http://geows.ds.iris.edu/documents/GeoCSV.pdf) formats
-* Creating horizontal slices (maps), vertical slices (cross-sections), and velocity profiles (line plots vs depth) from model data
+* Creating horizontal slices (maps), vertical slices (cross-sections), and velocity profiles (line plots vs depth) from the model data
 * Saving the generated plots and their corresponding data to a local directory
 * Outputing the entire netCDF file, or a selected portion of it in GeoCSV format
 
@@ -38,7 +38,7 @@ This package contains the following files:
        The directory where the notebook stores its output files under.
 
      samples/
-       A directory of sample EMC model netCDF files.
+       A directory of sample EMC model files.
 
     CHANGES.txt
       History of changes to this package.
