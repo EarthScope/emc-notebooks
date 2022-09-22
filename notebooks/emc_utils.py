@@ -1,17 +1,97 @@
 import os
+import sys
+from pathlib import Path
 import math
 import requests
+import warnings
+warnings.filterwarnings("ignore")
 from requests.exceptions import HTTPError
 from datetime import datetime, timezone
 from IPython.display import Markdown, display
+from ipyfilechooser import FileChooser
 import matplotlib.pyplot as plt
-
+import ipywidgets as wg
+import xarray as xr
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 cartopy.config['data_dir'] = os.getenv('CARTOPY_DIR', cartopy.config.get('data_dir'))
+    
+    
+def init_run_args():
+    """Initialize the container for the run parameters."""
+    run_args = dict()
+    this_path = Path(os.getcwd())
+    run_args['root_path'] = this_path.parent.absolute()
+    run_args['output_dir'] = 'output'
+    run_args['data_dir'] = 'samples'
+    run_args['data_path'] = os.path.join(run_args['root_path'], run_args['data_dir'])
+    run_args['model_filename'] = 'emc-jnp-iMUSH-localEQ-Ulberg-2020.nc'
+    run_args['save_tag'] = 'demo'
+    run_args['frame_size'] = (800, 600)
+    run_args['metadata_format'] = 'geocsv'
+    run_args['default_x_var'] = 'longitude'
+    run_args['x_step'] = 30
+    run_args['csv_x_step'] = 1
+    run_args['y_step'] = 30
+    run_args['csv_y_step'] = 1
+    run_args['z_step'] = 20
+    run_args['csv_z_step'] = 1
+    run_args['default_y_var'] = 'latitude'
+    run_args['default_z_var'] = 'depth'
+    run_args['z_exaggeration'] = 10
+    run_args['save_plots'] = True
+    run_args['save_data'] = True
+    run_args['max_exaggeration'] = 30
+    run_args['csv_mode'] = 'None'
+    
+    # matplotlib colormap to use. For available colormaps see:
+    # https://matplotlib.org/stable/tutorials/colors/colormaps.html
+    run_args['colormap'] ='jet_r'
+
+    # Notebook's version.
+    run_args['version'] = 'r0.1'
+
+    # GeoCSV version and delimiter to use.
+    run_args['geocsv_version'] = 'GeoCSV2.0'
+    run_args['delimiter'] = '|'
+
+    # Some control paramaters.
+    run_args['valid_modes'] = {'depth': 'km', 'single': ''}
+    run_args['valid_metadata_format'] = ['geocsv', 'netcdf']
+    run_args['valid_dimensions'] = {2:'2D', 3: '3D'}
+    run_args['file_extensions'] = {'netcdf': '.nc', 'csv': '.csv', 'image': '.png', 'zip': '.zip'}
+    
+    return run_args
+
+
+def set_run_arg(run_arg, arg, value):
+    run_arg[arg] = value
+    return run_arg
+    
+def on_change(change):
+    print(change)
+    if change['type'] == 'change' and change['name'] == 'value':
+        run_args['data_dir'] = change['new']
         
+def handle_file_change(change):
+    caption.value = 'The slider value is ' + (
+        'negative' if change.new < 0 else 'nonnegative'
+    )
+    
+def init_defaults():
+    """Initialize the default values."""""
+    default_extensions = {'netcdf': '.nc', 'csv': '.csv', 'image': '.png', 'zip': '.zip'}
+    widgets = {'delimiter': wg.Dropdown(options=['|', ',', 'space', 'tab'], 
+                                        value='|', description='Delimiter:', disabled=False),
+               'data_dir': wg.Text(value='data', description='data_dir', disabled=False),
+               'samples_dir': wg.Text(value='samples', description='samples_dir', disabled=False),
+               'samples_prefix': wg.Text(value='emc-jnp-', description='samples_prefix', disabled=False),
+               'default_extensions': wg.Text(value=f"{list(default_extensions.items())}",
+                                             description='default file extensions', disabled=True),
+              }
+    return default_extensions, widgets
 
 def calc_xy_ratio(x, y, factor=1):
     """Compute x/y ratio."""
@@ -218,7 +298,7 @@ def get_min_max(var, values, ranges):
     if v_min >= v_max or v_min >= val_max:
         raise ValueError(f"Invalid range {ranges} for variable {var} with range of {val_min:0.2f} to {val_max:0.2f}"
                          f"\nStop! Please update the range with proper min and max values.")
-    print(f"{var} variable range selected {v_min:0.2f} to {v_max:0.2f} from {val_min:0.2f} to {val_max:0.2f}")
+    print(f"{var} range {v_min:0.2f} to {v_max:0.2f} / {val_min:0.2f} to {val_max:0.2f}")
     return v_data, v_min, v_max        
         
 def get_ranges(x_var, x_range, x_vals, y_var, y_range, y_vals, z_var, z_range, z_vals, ndim):
@@ -258,7 +338,7 @@ def make_path(directory):
     return path
 
 
-def get_variable_attributes(model_data, header, variable, variable_name, spacer='\t'):
+def get_variable_attributes(model_data, header, variable, variable_name, spacer='\t', mode='column'):
     """add  variable attributes to the header
 
     Keyword arguments:
@@ -270,7 +350,8 @@ def get_variable_attributes(model_data, header, variable, variable_name, spacer=
     Return values:
     the geoCSV header for the model
     """
-    header.append(f"{spacer}# {variable_name.replace('_', '-')}_column: {variable}\n")
+    if mode == 'column':
+        header.append(f"{spacer}# {variable_name.replace('_', '-')}_column: {variable}\n")
     header.append(f"{spacer}# {variable_name.replace('_', '-')}_variable: {variable}\n")
     header.append(f"{spacer}# {variable_name.replace('_', '-')}_dimensions: {len(model_data.variables[variable].shape)}\n")
 
@@ -282,7 +363,7 @@ def get_variable_attributes(model_data, header, variable, variable_name, spacer=
     return header
 
 
-def get_model_header(model_file, model_data, run_args, var_list=list(), spacer='\t', mode='single'):
+def get_model_header(model_file, model_data, run_args, var_list=list(), spacer='\t', output_mode='single'):
     """create GeoCSV header for the model
 
     Keyword arguments:
@@ -296,15 +377,13 @@ def get_model_header(model_file, model_data, run_args, var_list=list(), spacer='
     ndim = run_args['ndim']
     # GeoCSV header
     header.append(f"{spacer}# dataset: {run_args['geocsv_version']}\n")
-    header.append(f"{spacer}# created: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC ({run_args['script']})\n")
+    header.append(f"{spacer}# created: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n")
     header.append(f"{spacer}# netCDF_file: {os.path.basename(model_file)}\n")
     header.append(f"{spacer}# delimiter: {run_args['delimiter']}\n")
 
     # global attributes
     history_done = False
-    history = f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')} Converted to GeoCSV by {run_args['script']} ," \
-        f"{run_args['script']} " \
-        f"from {model_file}"
+    history = f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')} Converted to GeoCSV from {model_file}"
     for attr, value in vars(model_data).items():
         if isinstance(value, str):
             value = value.replace('\n', '; ')
@@ -319,16 +398,21 @@ def get_model_header(model_file, model_data, run_args, var_list=list(), spacer='
     # variables
 
     header.append(f"{spacer}#\n")
-    #if mode == 'single':
-    #    for var_index, var_value in enumerate(list(model_data.variables)):
-    #        if not var_list or var_value in var_list:
-    #            head = get_var_header(model_data, var_value)
-    #            header.append(f"->{head}\n")
+    # Need coordinate variables for both output types.
+    #if output_mode == 'single':
+    if True:
+        for var_index, var_value in enumerate(list(model_data.variables)):
+            if not var_list or var_value in var_list:
+                mode = 'column'
+                if output_mode == 'depth' and var_value == run_args['z_variable']:
+                    mode = ''
+                head = get_var_header(model_data, var_value, spacer=spacer, mode=mode)
+                header.append(f"{head}\n")
             
     return ''.join(header)
 
 
-def get_var_header(model_data, var, spacer='\t'):
+def get_var_header(model_data, var, spacer='\t', mode='column'):
     """create GeoCSV header for a variable
 
     Keyword arguments:
@@ -339,26 +423,11 @@ def get_var_header(model_data, var, spacer='\t'):
     the geoCSV header for the variable
     """
     header = list()
-    header = get_variable_attributes(model_data, header, var, var, spacer=spacer)
+    header = get_variable_attributes(model_data, header, var, var, spacer=spacer, mode=mode)
     return ''.join(header)
 
 
-def usage():
-    print(f"\n{run_args['script']} reads a 2 or 3 dimensional netCDF Earth model file and convert it to GeoCSV format.\n\n")
-    print(f" USAGE:\n\n",
-          f"{run_args['script']} -i FILE -x longitude -y latitude -z depth -m mode -d -H\n"
-          f"\t-i [required] FILE is the input GeoCSV Earth model file\n",
-          f"\t-x [required] the netCDF variable representing the x-axis (must match the netCDF file's x variable)\n",
-          f"\t-y [required] the netCDF variable representing the y-axis (must match the netCDF file's y variable)\n",
-          f"\t-z [required] the netCDF variable representing the z-axis (must match the netCDF file's z variable"
-          f" OR set to 'none' for 2D models)\n",
-          f"\t-m [default:{run_args['OUTPUT_MODE']}] output mode [single: single GeoCSV file OR depth: one GeoCSV file per depth\n",
-          f"\t-H [default:{run_args['VIEW_HEADER']}] display headers only\n"
-          )
-
-
-
-def display_header(model_file, model_data, run_args):
+def display_header(model_file, model_data, run_args, metadata_format=None):
     """extract and display netCDF and GeoCSV header information
 
     Keyword arguments:
@@ -367,10 +436,12 @@ def display_header(model_file, model_data, run_args):
     Return values:
     None, output of the header information
     """
+    if metadata_format is None:
+        metadata_format = run_args['metadata_format']
+    elif metadata_format.lower() == 'none':
+        return
     
-    metadata_format = run_args['metadata_format']
-    
-    if metadata_format == 'netcdf':
+    if metadata_format.lower() == 'netcdf':
         # netCDF header
         #print(, flush=True)
         display(Markdown("### netCDF Style:\n\n"))
@@ -396,6 +467,8 @@ def display_header(model_file, model_data, run_args):
         for attr, value in vars(model_data).items():
             if isinstance(value, str):
                 value = value.replace('\n', '; ')
+            if isinstance(value, float):
+                value = f"{value:0.2f}"
             print(f"\t\t\t{attr} = {value}", flush=True)
     else:
         # GeoCSV header
@@ -418,35 +491,37 @@ def make_model_geocsv(run_args, output_mode):
     data_dir = run_args['data_path']
     model_file = os.path.join(data_dir, model_file)
     base_filename = run_args['base_filename']
-    default_extensions = run_args['default_extensions']
-    data_variables = run_args['data_variables']
+    default_extensions = run_args['file_extensions']
+    data_variables = run_args['csv_data_var']
     valid_modes = run_args['valid_modes']
+    model_variables = run_args['model_variables']
     
     x_variable = run_args['x_variable']
-    x_range = run_args['x_range']
+    x_range = run_args['csv_x_range']
     x_values = run_args['x_values']
-    x_step = run_args['x_step']
+    x_step = run_args['csv_x_step']
     
     y_variable = run_args['y_variable']
-    y_range = run_args['y_range']
+    y_range = run_args['csv_y_range']
     y_values = run_args['y_values']
-    y_step = run_args['y_step']
+    y_step = run_args['csv_y_step']
     
-    variable_list = run_args['variable_list']
+    variable_list = run_args['csv_data_var']
     if not variable_list:
         variable_list = data_variables.copy()
-        
+    coordinate_variables = run_args['coordinate_variables']
     ndim = run_args['ndim']
     
     if ndim['model'] > 2:
         z_variable = run_args['z_variable']
-        z_range = run_args['z_range']
+        z_range = run_args['csv_z_range']
         z_values = run_args['z_values']
+        z_step = run_args['csv_z_step']
     else:
         z_variable = None
         z_range = None
         z_values = None
-
+        z_step = 1
     emcin = {}
         
     x_data, x_min, x_max, y_data, y_min, y_max, z_data, z_min, z_max = get_ranges(x_variable, x_range, x_values, 
@@ -456,7 +531,7 @@ def make_model_geocsv(run_args, output_mode):
     x = x_data[::x_step]
     y = y_data[::y_step]
     if z_variable is not None:
-        z = z_data[:]
+        z = z_data[::z_step]
     else:
         z = [1]
             
@@ -471,8 +546,7 @@ def make_model_geocsv(run_args, output_mode):
     index = [-1, -1, -1]
     do_init = True
     var_done_list = list()
-    depth_count = 0
-    
+    z_count = 0
     for k, this_z in enumerate(z):
         
         # Get the model header:
@@ -482,7 +556,7 @@ def make_model_geocsv(run_args, output_mode):
             output_file = os.path.join(out_dir, f"{base_filename}{default_extensions['csv']}")
             fp = open(os.path.join(out_dir, output_file), 'w')
             print(f'[INFO] Output file: {output_file}', flush=True)
-            fp.write(get_model_header(model_file, model_data, run_args, var_list=variable_list, spacer=''))
+            fp.write(get_model_header(model_file, model_data, run_args, var_list=coordinate_variables, spacer=''))
             if ndim['model'] == 2:
                 data_header.append(f'{y_variable}{delimiter}{x_variable}')
             else:
@@ -495,10 +569,10 @@ def make_model_geocsv(run_args, output_mode):
             output_data = list()
             data_header = list()
             output_file = os.path.join(
-                f"{base_filename}_{this_z}_{valid_modes[output_mode]}{default_extensions['csv']}")
+                f"{base_filename}_{this_z:0.2f}_{valid_modes[output_mode]}{default_extensions['csv']}")
             fp = open(os.path.join(out_dir, output_file), 'w')
             print(f'[INFO] Output file: {output_file}', flush=True)
-            fp.write(get_model_header(model_file, model_data, run_args, var_list=variable_list, spacer='', mode=output_mode))
+            fp.write(get_model_header(model_file, model_data, run_args, var_list=coordinate_variables, spacer='', output_mode=output_mode))
             data_header.append(f'# depth: {this_z:0.2f}\n')
             data_header.append(f'{y_variable}{delimiter}{x_variable}')
             x_count, y_count = -1, -1
@@ -509,14 +583,14 @@ def make_model_geocsv(run_args, output_mode):
         # For 3D models, show progress by depth.
         if this_z is not None:
             # Show the progress.
-            if depth_count == 0:
+            if z_count == 0:
                 zero_depth = this_z
-                depth_count += 1
-            elif depth_count == 1:
-                depth_count += 1
+                z_count += 1
+            elif z_count == 1:
+                z_count += 1
                 if ndim['model'] > 2:
                     print(f'[INFO] Depth range: {z[0]:0.2f} to {z[-1]:0.2f}', flush=True)
-                print(f"{zero_depth}, {this_z},", end=' ', flush=True)
+                print(f"{zero_depth:0.2f}, {this_z:0.2f},", end=' ', flush=True)
             else:
                 print(f"{this_z:0.2f},", end=' ', flush=True)
 
@@ -537,15 +611,17 @@ def make_model_geocsv(run_args, output_mode):
                     output_data.append(f'{_lat:s}{delimiter}{_lon:s}')
 
                 # Go through each model variable.
-                for var_index, var_value in enumerate(list(model_data.variables)):
+                for var_index, var_value in enumerate(model_variables):
                     var = var_value.encode('ascii', 'ignore').decode("utf-8")
                     # Model variables only.
                     if var in variable_list:
-       
                         # Do this for the first point, when all indices are zero.
-                        if ((output_mode == 'single' and (not i and not j and not k)) or
-                                (output_mode == 'depth' and (not i and not j))):
-                            fp.write(get_var_header(model_data, var, spacer=''))
+                        if (output_mode == 'single' and i == 0 and j == 0 and k == 0) or (output_mode == 'depth' and i == 0 and j == 0):
+                            # Turn off column notation for depth in depth files.
+                            mode = 'column'
+                            if output_mode == 'depth' and var == z_variable:
+                                mode = ''
+                            fp.write(get_var_header(model_data, var, spacer='', mode=mode))
                             data_header.append(f"{delimiter}{var}")
 
                         # find the variable dimension ordering
