@@ -1,0 +1,11 @@
+xarray
+netCDF4
+numpy
+scipy
+cartopy
+matplotlib
+jupyterlab
+nodejs
+ipywidgets
+ipyfilechooser
+requests
