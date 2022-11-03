@@ -45,6 +45,7 @@ def init_run_args():
     run_args['save_data'] = True
     run_args['max_exaggeration'] = 30
     run_args['csv_mode'] = 'None'
+    run_args['projection'] = ccrs.PlateCarree()
     
     # matplotlib colormap to use. For available colormaps see:
     # https://matplotlib.org/stable/tutorials/colors/colormaps.html
@@ -123,14 +124,14 @@ def great_circle_distance(lat_1, lon_1, lat_2, lon_2, mode='km'):
     return distance_deg, distance_km
 
     
-def plot_hslice(zslice, x_variable, x_min, x_max, y_variable, y_min, y_max, title, colormap):
+def plot_hslice(zslice, x_variable, x_min, x_max, y_variable, y_min, y_max, title, colormap, projection):
     # Axes with Cartopy projection
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax = plt.axes(projection=projection)
     # and extent
-    ax.set_extent([x_min, x_max, y_min, y_max], ccrs.PlateCarree())
+    ax.set_extent([x_min, x_max, y_min, y_max], projection)
 
     # Plot lat/lon grid 
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+    gl = ax.gridlines(crs=projection, draw_labels=True,
                       linewidth=0.1, color='k', alpha=1, 
                       linestyle='--')
     gl.top_labels = False
@@ -146,22 +147,22 @@ def plot_hslice(zslice, x_variable, x_min, x_max, y_variable, y_min, y_max, titl
                                                 facecolor='None'))
     ax.coastlines(linewidth=1)
     ax.set_xlabel(x_variable)
-    ax.set_ylabel(y_variable)    
+    ax.set_ylabel(y_variable)  
     zslice.plot(cmap=colormap, cbar_kwargs={'shrink': 0.5})
     # plt.suptitle(title, y=0.9)
     return plt
     
         
         
-def plot_model_area(x_variable, x_values, y_variable, y_values):
+def plot_model_area(x_variable, x_values, y_variable, y_values, projection):
     """Plot a map of the model coverage."""
     # Axes with Cartopy projection
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax = plt.axes(projection=projection)
     # and extent
-    #ax.set_extent([min(x_values), max(x_values), min(y_values), max(y_values)], ccrs.PlateCarree())
-    ax.set_extent([-180, 180, -90, 90], ccrs.PlateCarree())
+    #ax.set_extent([min(x_values), max(x_values), min(y_values), max(y_values)], projection)
+    ax.set_extent([-180, 180, -90, 90], projection)
     # Plot lat/lon grid 
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+    gl = ax.gridlines(crs=projection, draw_labels=True,
                       linewidth=0.1, color='k', alpha=1, 
                       linestyle='--')
     gl.top_labels = False
