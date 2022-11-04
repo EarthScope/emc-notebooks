@@ -31,14 +31,15 @@ Using the `jupyterlab` module install from `requirements.txt` you can simply exe
 jupyter-lab
 ```
 
-and open the `notebooks/emc_model_explorer.ipynb` notebook.
+and open the `notebooks/emc_model_explorer.ipynb` notebook. For more information visit the [Wiki page](https://github.com/iris-edu/emc-notebooks/wiki)
 
 ### Package testing
 
 This package comes with a `samples` directory pre-loaded with a few EMC netCDF files for testing. 
 Run the notebook as it is, using the "Restart and Run all" option (>>).
 It should load a sample model file from the samples directory, and display information and plots for the model.
-You load other model files using the file selection widget under the "Select a Model" section.
+
+You load other model files using the **file selection widget** under the **Select a Model** section.
 
 ## Package contents
 
@@ -61,6 +62,9 @@ This package contains the following files:
 
      samples/
        A directory of sample EMC model files.
+
+    requirements.txt
+        List of the required Python modules.
 
     CHANGES.txt
       History of changes to this package.
