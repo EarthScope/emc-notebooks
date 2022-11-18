@@ -7,7 +7,7 @@ This Jupyter Notebook reads an [EMC-compatible Earth model file](http://ds.iris.
 * Displaying the model metadata in either [netCDF](https://www.unidata.ucar.edu/software/netcdf/) or [GeoCSV](http://geows.ds.iris.edu/documents/GeoCSV.pdf) formats
 * Creating horizontal slices (maps), vertical slices (cross-sections), and velocity profiles (line plots vs depth) from the model data
 * Saving the generated plots and their corresponding data to a local directory
-* Outputing the entire netCDF file, or a selected portion of it in GeoCSV format
+* Outputting the entire netCDF file, or a selected portion of it in GeoCSV format
 
 ## Installation
 
@@ -23,7 +23,7 @@ This package has been tested under Python 3.10.06 on macOS 12.5.1, it may work w
 
 ### Running the package
 
-Notebooks can be exectute a variety of ways, commonly either with JupyterLab or Jupyter Notebook (https://jupyter.org/).
+Notebooks can be executed a variety of ways, commonly either with JupyterLab or Jupyter Notebook (https://jupyter.org/).
 
 Using the `jupyterlab` module install from `requirements.txt` you can simply execute the following in a terminal:
 
